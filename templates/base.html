@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+
+        <link rel="stylesheet" href="{{ url_for('static', filename='main.css') }}">
+
+    </head>
+
+    <body>
+
+        <header class="container">
+        <h1>Campus Event Hub</h1>
+
+        <nav>
+            <a href="#">Home</a>
+            <a href="#">Categories</a>
+            <a href="#">Post Event</a>
+            <a href="#">Login</a>
+        </nav>
+
+
+        <form>
+            <input type="search" name="search" placeholder="search events" aria-label="Search"/> 
+            <button type="submit">Search</button>
+        </form>
+    </header>
+
+    <main class="container">
+        {% block body %}{% endblock %}
+    </main>
+
+    <footer>
+        <p style="text-align:center; margin: 1rem 0;">© 2025 Campus Event Hub</p>
+    </footer>
+
+    
+    </body>
+</html>

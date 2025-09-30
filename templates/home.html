@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block title %}Home | Campus Event Hub{% endblock %}
+
+{% block body %}
+    <section>
+        <h2>Event Categories</h2>
+        <ul>
+            <li><a href="#academics">Academics</a></li>
+            <li><a href="#">Sports</a></li>
+            <li><a href="#">Social</a></li>
+            <li><a href="#">Clubs</a></li>
+            <li><a href="#">Students Workshop</a></li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Upcoming Events</h2>
+
+        <div class="event-wrapper">
+            <article>
+                <h3>Soccer Night</h3>
+                <p>Date: Sept 15, 2025</p>
+                <p>Location: EMU Turf</p>
+                <p>Description: Share your soccer skills and make new friends</p>
+                <form><button type="submit">RSVP</button></form>
+            </article>
+
+            <article>
+                <h3>Pickball</h3>
+                <p>Date: Sept 16, 2025</p>
+                <p>Location: Inside Basketball Courts</p>
+                <p>Description: Share your talent and have fun</p>
+                <form><button type="submit">RSVP</button></form>
+            </article>
+
+            <article>
+                <h3>ISO Food Festival</h3>
+                <p>Date: Sept 15, 2025</p>
+                <p>Location: University Commons</p>
+                <p>Description: Enjoy the delicious food from various cultures</p>
+                <form><button type="submit">RSVP</button></form>
+            </article>
+        </div>
+    </section>
+
+    <section>
+        <h1 id="academics">Academics</h1>
+    </section>
+{% endblock %}
