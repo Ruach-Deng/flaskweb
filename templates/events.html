@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}All Events | Campus Event Hub{% endblock %}
+
+{% block body %}
+
+<h2>All Posted Events</h2>
+
+<section>
+  {% for event in events %}
+  <article>
+    <h3>{{ event.title }}</h3>
+    <p><strong>Date:</strong> {{ event.date }}</p>
+    <p><strong>Location:</strong> {{ event.location }}</p>
+    <p><strong>Description:</strong> {{ event.description }}</p>
+  </article>
+  {% else %}
+  <p>No events yet. <a href="{{ url_for('post_event') }}">Post one now!</a></p>
+  {% endfor %}
+</section>
+{% endblock %}

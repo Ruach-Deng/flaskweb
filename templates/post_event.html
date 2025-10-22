@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Post Event | Campus Event Hub{% endblock %}
+
+{% block body %}
+
+<h2>Post a New Event</h2>
+
+<form method="POST" action="{{ url_for('post_event') }}">
+  <fieldset class="grid">
+    <input type="text" name="title" placeholder="Event Title" required />
+    <input type="text" name="date" placeholder="Date (e.g. Oct 25, 2025)" required />
+    <input type="text" name="location" placeholder="Location" required />
+    <textarea name="description" placeholder="Description" required></textarea>
+    <input type="submit" value="Add Event" />
+  </fieldset>
+</form>
+{% endblock %}
