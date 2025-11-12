@@ -1,6 +1,18 @@
 from flask import Flask, render_template, request, redirect, url_for
+import os
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+import sqlalchemy.orm as so
+import sqlalchemy as sa
+
+
+basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
+app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, 'app.db')
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
 
 # Set a secret key for encrypting session data
 app.secret_key = 'my_secret_key'
@@ -12,6 +24,17 @@ users = {
 }
 
 # Placeholder event data (iterable)
+
+class Event(db.Model):
+    # Defining all the class variables
+    id = db.Column(db.Integer, primary_key=True)
+    title: so.Mapped[str] = so.mapped_column(index=True, default="No title")
+    date: so.Mapped[float] = so.mapped_column(index=True, default=0)
+    location: so.Mapped[str] = so.mapped_column(index=True, default="No Location")
+    description: so.Mapped[str] = so.mapped_column(index=True, default="No Description")
+
+    
+
 events = [
     {
         'title': 'Soccer Night',
@@ -57,6 +80,11 @@ def event_list():
 # Route to post a new event (form handling)
 @app.route('/post_event', methods=['GET', 'POST'])
 def post_event():
+
+    #Create a database query
+    query = sa.select(Event)
+    d = db.session.scalars(query).all()
+
     if request.method == 'POST':
         title = request.form.get('title')
         date = request.form.get('date')
@@ -72,8 +100,17 @@ def post_event():
         })
 
         return redirect(url_for('event_list'))
+    
+    #Adding to the database
+    obj = Event()
+    db.session.add(obj)
 
-    return render_template('post_event.html')
+    #Commit chnages to end of the route
+    db.session.commit()
+
+
+
+    return render_template('post_event.html', Event = d)
 
 
         
