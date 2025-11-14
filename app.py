@@ -4,6 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import sqlalchemy.orm as so
 import sqlalchemy as sa
+from datetime import datetime
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -29,7 +30,7 @@ class Event(db.Model):
     # Defining all the class variables
     id = db.Column(db.Integer, primary_key=True)
     title: so.Mapped[str] = so.mapped_column(index=True, default="No title")
-    date: so.Mapped[float] = so.mapped_column(index=True, default=0)
+    date: so.Mapped[datetime] = so.mapped_column(index=True, default=datetime.now)
     location: so.Mapped[str] = so.mapped_column(index=True, default="No Location")
     description: so.Mapped[str] = so.mapped_column(index=True, default="No Description")
 
@@ -108,11 +109,7 @@ def post_event():
     #Commit chnages to end of the route
     db.session.commit()
 
-
-
     return render_template('post_event.html', Event = d)
-
-
         
 if __name__ == '__main__':
     app.run(debug=True)
