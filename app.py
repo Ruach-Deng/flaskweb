@@ -26,6 +26,7 @@ users = {
 
 # Placeholder event data (iterable)
 
+# Define the Event model
 class Event(db.Model):
     # Defining all the class variables
     id = db.Column(db.Integer, primary_key=True)
@@ -35,7 +36,8 @@ class Event(db.Model):
     description: so.Mapped[str] = so.mapped_column(index=True, default="No Description")
 
     
-
+# Delete these because we are using a database now
+# Placeholder event data (iterable)
 events = [
     {
         'title': 'Soccer Night',
@@ -54,6 +56,7 @@ events = [
 @app.route("/")
 def home():
     # Displays the homepage with categories and a preview of events
+   
     return render_template("home.html", events=events)
 
 # Combined GET and POST handling for login
@@ -74,42 +77,63 @@ def login():
     
 
 # Route to display all events (iterable data)
-@app.route('/events')
+@app.route('/events', methods=['GET', 'POST'])
 def event_list():
-    return render_template('events.html', events=events)
-
-# Route to post a new event (form handling)
-@app.route('/post_event', methods=['GET', 'POST'])
-def post_event():
-
-    #Create a database query
-    query = sa.select(Event)
-    d = db.session.scalars(query).all()
-
-    if request.method == 'POST':
-        title = request.form.get('title')
-        date = request.form.get('date')
-        location = request.form.get('location')
-        description = request.form.get('description')
-
-        # Append new event to list (simulating database save)
-        events.append({
-            'title': title,
-            'date': date,
-            'location': location,
-            'description': description
-        })
-
-        return redirect(url_for('event_list'))
+    if request.method == "POST":
+        obj = Event()
+        obj.title = request.form.get('title')
+        obj.date = request.form.get('date')
+        obj.location = request.form.get('location')
+        obj.description = request.form.get('description')
+        
+        db.session.add(obj)
+        #Commit chnages to end of the route
+        db.session.commit()
+        return "Form submitted successfully!"
     
-    #Adding to the database
-    obj = Event()
-    db.session.add(obj)
+    # redirect to events page after submission - redirect/events
 
-    #Commit chnages to end of the route
-    db.session.commit()
+    elif request.method == "GET":
+        # Add the contents of the database to the events list
+        #Create a database query
+        events = db.session.scalars(sa.select(Event))
 
-    return render_template('post_event.html', Event = d)
+        #Render the events template with the events data
+        return render_template('events.html', events=events)
+
+#Route to post a new event (form handling)
+@app.route('/post_event' )
+def post_event():
+    return render_template('post_event.html')
+
+#     #Create a database query
+#     query = sa.select(Event)
+#     d = db.session.scalars(query).all()
+
+#     if request.method == 'POST':
+#         title = request.form.get('title')
+#         date = request.form.get('date')
+#         location = request.form.get('location')
+#         description = request.form.get('description')
+
+#         # Append new event to list (simulating database save)
+#         events.append({
+#             'title': title,
+#             'date': date,
+#             'location': location,
+#             'description': description
+#         })
+
+#         return redirect(url_for('event_list'))
+    
+#     #Adding to the database
+#     obj = Event()
+#     db.session.add(obj)
+
+#     #Commit chnages to end of the route
+#     db.session.commit()
+
+#     return render_template('post_event.html', Event = d)
         
 if __name__ == '__main__':
     app.run(debug=True)
