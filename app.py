@@ -5,6 +5,17 @@ from flask_migrate import Migrate
 import sqlalchemy.orm as so
 import sqlalchemy as sa
 from datetime import datetime
+from werkzeug.security import check_password_hash, generate_password_hash
+from flask_login import LoginManager
+from flask_login import UserMixin
+from app.models import User
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, BooleanField, SubmitField
+from wtforms.validators import ValidationError, DataRequired, Email, EqualTo
+from app.forms import RegistrationForm
+from flask_login import current_user, login_user
+from flask import flash
+from flask_login import logout_user
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -13,16 +24,56 @@ app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, 'app.db')
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+login = LoginManager(app)
+
+# Define the User model
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(150), unique=True, nullable=False)
+    password = db.Column(db.String(150), nullable=False)
+
+
+# Registration Form using Flask-WTF
+class RegistrationForm(FlaskForm):
+    username = StringField('Username', validators=[DataRequired()])
+    email = StringField('Email', validators=[DataRequired(), Email()])
+    password = PasswordField('Password', validators=[DataRequired()])
+    password2 = PasswordField(
+        'Repeat Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Register')
+
+    def validate_username(self, username):
+        user = db.session.scalar(sa.select(User).where(
+            User.username == username.data))
+        if user is not None:
+            raise ValidationError('Please use a different username.')
+
+    def validate_email(self, email):
+        user = db.session.scalar(sa.select(User).where(
+            User.email == email.data))
+        if user is not None:
+            raise ValidationError('Please use a different email address.')
+
+# Login Form using Flask-WTF
+class LoginForm(FlaskForm):
+    username = StringField("Username", validators=[DataRequired(), Length(1, 64)])
+    password = PasswordField("Password", validators=[DataRequired()])
+    remember_me = BooleanField("Remember me")
+    submit = SubmitField("Sign in")
+
+
+
 
 
 # Set a secret key for encrypting session data
 app.secret_key = 'my_secret_key'
 
 # dictionary to store user and password
-users = {
-    'kunal@gmail.com': '1234',
-    'user2@gmail.com': 'password2'
-}
+#users = {
+#    'kunal@gmail.com': '1234',
+#    'user2@gmail.com': 'password2'
+#}
+
 
 # Placeholder event data (iterable)
 
@@ -59,22 +110,63 @@ def home():
    
     return render_template("home.html", events=events)
 
+
+# Combined GET and POST handling for login
+#@app.route('/login', methods=['GET', 'POST'])
+#def login():
+    
+   # if request.method == 'POST':
+       # email = request.form.get('email')
+       # password = request.form.get('password')
+        #print(email, password)
+
+       # if email in users and users[email] == password:
+        #    return '<h1>Welcome!!!</h1>'
+       # else:
+           # return '<h1>Invalid credentials!</h1>'
+    #else:
+       # return render_template('login.html')
+
+
 # Combined GET and POST handling for login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = db.session.scalar(
+            sa.select(User).where(User.username == form.username.data))
+        if user is None or not user.check_password(form.password.data):
+            flash('Invalid username or password')
+            return redirect(url_for('login'))
+        login_user(user, remember=form.remember_me.data)
+        return redirect(url_for('index'))
+    return render_template('login.html', title='Sign In', form=form)    
+   
     
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        print(email, password)
+# Combined GET and POST handling for registration
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(username=form.username.data, email=form.email.data)
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('Congratulations, you are now a registered user!')
+        return redirect(url_for('login'))
+    return render_template('register.html', title='Register', form=form)
 
-        if email in users and users[email] == password:
-            return '<h1>Welcome!!!</h1>'
-        else:
-            return '<h1>Invalid credentials!</h1>'
-    else:
-        return render_template('login.html')
-    
+# Logout
+@app.route("/logout")
+def logout():
+    logout_user()
+    return redirect(url_for("home"))
+
+
 
 # Route to display all events (iterable data)
 @app.route('/events', methods=['GET', 'POST'])
@@ -105,6 +197,8 @@ def event_list():
 @app.route('/post_event' )
 def post_event():
     return render_template('post_event.html')
+
+
 
 #     #Create a database query
 #     query = sa.select(Event)
