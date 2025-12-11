@@ -6,13 +6,13 @@ import sqlalchemy.orm as so
 import sqlalchemy as sa
 from datetime import datetime
 from werkzeug.security import check_password_hash, generate_password_hash
-from flask_login import LoginManager
+from flask_login import LoginManager, login_required
 from flask_login import UserMixin
-from app.models import User
-from flask_wtf import FlaskForm
-from wtforms import StringField, PasswordField, BooleanField, SubmitField
-from wtforms.validators import ValidationError, DataRequired, Email, EqualTo
-from app.forms import RegistrationForm
+# from app.models import User
+# from flask_wtf import FlaskForm
+# from wtforms import StringField, PasswordField, BooleanField, SubmitField
+# from wtforms.validators import ValidationError, DataRequired, Email, EqualTo
+# from app.forms import RegistrationForm
 from flask_login import current_user, login_user
 from flask import flash
 from flask_login import logout_user
@@ -22,6 +22,8 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(basedir, 'app.db')
+app.config['SECRET_KEY'] = 'your_secret_key'
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 login = LoginManager(app)
@@ -31,42 +33,56 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(150), unique=True, nullable=False)
     password = db.Column(db.String(150), nullable=False)
+    
+    # Methods to set and check password
+    def set_password(self, password):
+        self.password = generate_password_hash(password)
+    def check_password(self, password):
+        return check_password_hash(self.password, password)
+    
+
+#Initialize the database and create the user table
+with app.app_context():
+    db.create_all()
+
+# Define a user loader function to load a user from the database based on their user ID
+@login.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
 
 
 # Registration Form using Flask-WTF
-class RegistrationForm(FlaskForm):
-    username = StringField('Username', validators=[DataRequired()])
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    password = PasswordField('Password', validators=[DataRequired()])
-    password2 = PasswordField(
-        'Repeat Password', validators=[DataRequired(), EqualTo('password')])
-    submit = SubmitField('Register')
+# class RegistrationForm(FlaskForm):
+#     username = StringField('Username', validators=[DataRequired()])
+#     email = StringField('Email', validators=[DataRequired(), Email()])
+#     password = PasswordField('Password', validators=[DataRequired()])
+#     password2 = PasswordField(
+#         'Repeat Password', validators=[DataRequired(), EqualTo('password')])
+#     submit = SubmitField('Register')
 
-    def validate_username(self, username):
-        user = db.session.scalar(sa.select(User).where(
-            User.username == username.data))
-        if user is not None:
-            raise ValidationError('Please use a different username.')
+#     def validate_username(self, username):
+#         user = db.session.scalar(sa.select(User).where(
+#             User.username == username.data))
+#         if user is not None:
+#             raise ValidationError('Please use a different username.')
 
-    def validate_email(self, email):
-        user = db.session.scalar(sa.select(User).where(
-            User.email == email.data))
-        if user is not None:
-            raise ValidationError('Please use a different email address.')
+#     def validate_email(self, email):
+#         user = db.session.scalar(sa.select(User).where(
+#             User.email == email.data))
+#         if user is not None:
+#             raise ValidationError('Please use a different email address.')
+        
 
-# Login Form using Flask-WTF
-class LoginForm(FlaskForm):
-    username = StringField("Username", validators=[DataRequired(), Length(1, 64)])
-    password = PasswordField("Password", validators=[DataRequired()])
-    remember_me = BooleanField("Remember me")
-    submit = SubmitField("Sign in")
-
-
-
+# # Login Form using Flask-WTF
+# class LoginForm(FlaskForm):
+#     username = StringField("Username", validators=[DataRequired(), Length(1, 64)])
+#     password = PasswordField("Password", validators=[DataRequired()])
+#     remember_me = BooleanField("Remember me")
+#     submit = SubmitField("Sign in")
 
 
-# Set a secret key for encrypting session data
-app.secret_key = 'my_secret_key'
 
 # dictionary to store user and password
 #users = {
@@ -131,41 +147,69 @@ def home():
 # Combined GET and POST handling for login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    print("Login started...")
     if current_user.is_authenticated:
+        print("User is already authenticated")
         return redirect(url_for('home'))
-    form = LoginForm()
-    if form.validate_on_submit():
+    if request.method == 'POST':
         user = db.session.scalar(
-            sa.select(User).where(User.username == form.username.data))
-        if user is None or not user.check_password(form.password.data):
+            sa.select(User).where(User.email == request.form.get('email')))
+        if user is None or not user.check_password(request.form.get('password')):
             flash('Invalid username or password')
             return redirect(url_for('login'))
-        login_user(user, remember=form.remember_me.data)
-        return redirect(url_for('index'))
-    return render_template('login.html', title='Sign In', form=form)    
+        login_user(user)
+        return redirect(url_for('home'))
+    elif request.method == 'GET':
+        return render_template('login.html', title='Sign In')    
    
     
 # Combined GET and POST handling for registration
+
+# use the same for login for registration
+# add all the links to connect all the webpages together
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if current_user.is_authenticated:
         return redirect(url_for('home'))
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        user = User(username=form.username.data, email=form.email.data)
-        user.set_password(form.password.data)
+    
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        # make sure fields are not empty
+        if not email or not password:
+            flash("Please fill out all fields.")
+            return redirect(url_for("register"))
+        
+         # check if email already exists
+        existing = db.session.scalar(sa.select(User).where(User.email == email))
+        if existing:
+            flash("Email already registered.")
+            return redirect(url_for("login"))
+
+        print(email, password)
+        user = User(email=email)
+        user.set_password(password)
+
+       
+       # Add the new user to the database
         db.session.add(user)
         db.session.commit()
+
         flash('Congratulations, you are now a registered user!')
         return redirect(url_for('login'))
-    return render_template('register.html', title='Register', form=form)
+    
+    return render_template('register.html',)
 
 # Logout
+# @login_required(), to protect routes that require authentication use it for post event routes
+#  as well as managing events
+
 @app.route("/logout")
 def logout():
     logout_user()
     return redirect(url_for("home"))
-
 
 
 # Route to display all events (iterable data)
@@ -174,7 +218,12 @@ def event_list():
     if request.method == "POST":
         obj = Event()
         obj.title = request.form.get('title')
-        obj.date = request.form.get('date')
+
+        # convert date string to datetime object
+        date_str = request.form.get('date')
+        obj.date = datetime.strptime(date_str, "%b %d, %Y")
+        # obj.date = request.form.get('date')
+
         obj.location = request.form.get('location')
         obj.description = request.form.get('description')
         
@@ -194,6 +243,7 @@ def event_list():
         return render_template('events.html', events=events)
 
 #Route to post a new event (form handling)
+
 @app.route('/post_event' )
 def post_event():
     return render_template('post_event.html')

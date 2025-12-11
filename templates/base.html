@@ -13,10 +13,12 @@
         <header class="container">
         <h1>Campus Event Hub</h1>
 
+        
+
         <nav>
-            <a href="# {{ url_for('home')}}">Home</a>
-            <a href="#">Categories</a>
-            <a href="#">Post Event</a>
+            <a href=" {{ url_for('home')}}">Home</a>
+            <a href="{{ url_for('event_list') }}">Categories</a>
+            <a href="{{ url_for('post_event') }}">Post Event</a>
             <a href="{{url_for('login')}}">Login</a>
             <a href="{{url_for('register')}}">Register</a>
         </nav>
